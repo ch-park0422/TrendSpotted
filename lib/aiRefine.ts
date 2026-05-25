@@ -21,8 +21,8 @@ import type { RawTrend, RefinedTrend, Category, MonetizationIdea } from "./types
 
 const MODEL = "claude-sonnet-4-6";
 
-// Keep below the Sonnet 4.6 max but generous enough for 15 trends with JSONB
-const MAX_TOKENS = 8192;
+// 트렌드 15개 × 상세 JSON ≈ 최대 16k 토큰
+const MAX_TOKENS = 16000;
 
 // ─── Lazy client initialisation ───────────────────────────────────────────────
 
@@ -319,8 +319,9 @@ export async function refineTrendsWithAI(
 
   const toolInput = toolUseBlock.input as { trends?: unknown[] };
   if (!Array.isArray(toolInput.trends)) {
-    console.error("[aiRefine] tool_use input received:", JSON.stringify(toolInput).slice(0, 500));
-    throw new Error("[aiRefine] tool_use input missing 'trends' array");
+    // 디버그: 실제 수신된 input을 에러 메시지에 포함
+    const received = JSON.stringify(toolInput).slice(0, 300);
+    throw new Error(`[aiRefine] tool_use input missing 'trends' array. stop_reason=${finalMessage.stop_reason}, received=${received}`);
   }
 
   const refined: RefinedTrend[] = [];
