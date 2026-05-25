@@ -13,10 +13,10 @@ import {
   Zap,
   BookOpen,
 } from "lucide-react";
-import { getTrendById } from "@/lib/mockData";
+import { getTrendById } from "@/lib/getTrends";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { MonetizationIdea } from "@/lib/mockData";
+import type { MonetizationIdea } from "@/lib/types";
 
 const DIFFICULTY_COLOR: Record<
   MonetizationIdea["difficulty"],
@@ -41,7 +41,7 @@ interface PageProps {
 
 export default async function InsightPage({ params }: PageProps) {
   const { id } = await params;
-  const trend = getTrendById(id);
+  const trend = await getTrendById(id);
 
   if (!trend) {
     notFound();

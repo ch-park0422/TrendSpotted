@@ -1,7 +1,30 @@
 import { TrendingUp, BarChart3, Sparkles } from "lucide-react";
 import TrendList from "@/components/TrendList";
+import { getAllTrendsByCategory, getAllTrends } from "@/lib/getTrends";
 
-export default function HomePage() {
+// 크론이 6시간마다 실행되므로 캐시도 6시간으로 설정
+export const revalidate = 21600;
+
+export default async function HomePage() {
+  // 서버에서 Supabase(또는 mockData)에서 데이터 패치
+  const [trendsByCategory, allTrends] = await Promise.all([
+    getAllTrendsByCategory(),
+    getAllTrends(),
+  ]);
+
+  // 통계 계산
+  const totalCount = allTrends.length;
+  const avgRiseRate = totalCount > 0
+    ? Math.round(allTrends.reduce((sum, t) => sum + t.riseRate, 0) / totalCount)
+    : 0;
+  const lastUpdated = allTrends[0]?.updatedAt
+    ? new Date(allTrends[0].updatedAt).toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+
   return (
     <div className="space-y-10">
       {/* Hero Section */}
@@ -30,8 +53,8 @@ export default function HomePage() {
         {/* Stats row */}
         <div className="mt-8 flex flex-wrap gap-6">
           {[
-            { icon: TrendingUp, label: "실시간 트렌드", value: "7개+" },
-            { icon: BarChart3, label: "평균 상승률", value: "+312%" },
+            { icon: TrendingUp, label: "실시간 트렌드", value: `${totalCount}개` },
+            { icon: BarChart3, label: "평균 상승률", value: `+${avgRiseRate}%` },
             { icon: Sparkles, label: "AI 인사이트", value: "24/7" },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex items-center gap-2.5">
@@ -58,10 +81,10 @@ export default function HomePage() {
             <p className="text-sm text-white/40 mt-0.5">카테고리별 실시간 인기 키워드</p>
           </div>
           <div className="text-xs text-white/30">
-            2025년 5월 25일 기준
+            {lastUpdated} 기준
           </div>
         </div>
-        <TrendList />
+        <TrendList trendsByCategory={trendsByCategory} />
       </section>
     </div>
   );

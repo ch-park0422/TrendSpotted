@@ -2,13 +2,14 @@
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import TrendCard from "@/components/TrendCard";
-import { getTrendsByCategory, CATEGORIES } from "@/lib/mockData";
-import type { Category } from "@/lib/mockData";
+import { CATEGORIES } from "@/lib/mockData";
+import type { Category, TrendInsight } from "@/lib/types";
 import { Flame, Lightbulb, Code2 } from "lucide-react";
+import type { ReactNode } from "react";
 
 const CATEGORY_META: Record<
   Category,
-  { icon: React.ReactNode; emoji: string; description: string }
+  { icon: ReactNode; emoji: string; description: string }
 > = {
   재테크: {
     icon: <Flame className="h-4 w-4" />,
@@ -27,7 +28,12 @@ const CATEGORY_META: Record<
   },
 };
 
-export default function TrendList() {
+interface TrendListProps {
+  /** 서버에서 미리 패치한 카테고리별 트렌드 데이터 */
+  trendsByCategory: Record<Category, TrendInsight[]>;
+}
+
+export default function TrendList({ trendsByCategory }: TrendListProps) {
   return (
     <Tabs defaultValue="재테크" className="w-full">
       <TabsList className="w-full sm:w-auto">
@@ -40,9 +46,7 @@ export default function TrendList() {
       </TabsList>
 
       {CATEGORIES.map((cat) => {
-        const trends = getTrendsByCategory(cat).sort(
-          (a, b) => b.riseRate - a.riseRate
-        );
+        const trends = trendsByCategory[cat] ?? [];
         const meta = CATEGORY_META[cat];
 
         return (
@@ -64,9 +68,15 @@ export default function TrendList() {
 
             {/* Cards */}
             <div className="flex flex-col gap-3 animate-fade-in">
-              {trends.map((trend, i) => (
-                <TrendCard key={trend.id} trend={trend} rank={i + 1} />
-              ))}
+              {trends.length > 0 ? (
+                trends.map((trend, i) => (
+                  <TrendCard key={trend.id} trend={trend} rank={i + 1} />
+                ))
+              ) : (
+                <p className="text-center text-white/30 py-12 text-sm">
+                  트렌드 데이터를 불러오는 중입니다...
+                </p>
+              )}
             </div>
           </TabsContent>
         );
