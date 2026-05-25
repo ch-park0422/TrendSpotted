@@ -284,8 +284,8 @@ export async function refineTrendsWithAI(
 
   const userMessage = `다음 ${rawTrends.length}개의 구글 트렌드 급상승 키워드를 분석하고 save_trend_insights 도구를 사용하여 결과를 저장해주세요:\n\n${trendsText}`;
 
-  // stream.finalMessage()이 내부적으로 스트림을 소비하고 최종 메시지를 조합
-  const stream = client.messages.stream({
+  // 스트리밍 대신 일반 API 호출 — tool_use input JSON 처리가 더 안정적
+  const response = await client.messages.create({
     model: MODEL,
     max_tokens: MAX_TOKENS,
     system: SYSTEM_PROMPT,
@@ -294,34 +294,31 @@ export async function refineTrendsWithAI(
     messages: [{ role: "user", content: userMessage }],
   });
 
-  const finalMessage = await stream.finalMessage();
-
   // 토큰 사용량 로깅
-  const usage = finalMessage.usage as unknown as Record<string, number>;
+  const usage = response.usage as unknown as Record<string, number>;
   console.log(
-    `[aiRefine] tokens — input: ${usage["input_tokens"] ?? 0}, ` +
+    `[aiRefine] stop_reason=${response.stop_reason} ` +
+    `tokens — input: ${usage["input_tokens"] ?? 0}, ` +
     `cache_read: ${usage["cache_read_input_tokens"] ?? 0}, ` +
     `cache_creation: ${usage["cache_creation_input_tokens"] ?? 0}, ` +
     `output: ${usage["output_tokens"] ?? 0}`
   );
 
-  // stop_reason 확인 (max_tokens 초과 여부)
-  if (finalMessage.stop_reason === "max_tokens") {
-    console.warn("[aiRefine] Warning: response was truncated by max_tokens limit");
+  if (response.stop_reason === "max_tokens") {
+    throw new Error(`[aiRefine] Response truncated — max_tokens(${MAX_TOKENS}) exceeded. Try reducing batch size.`);
   }
 
-  // Extract the tool_use block
-  const toolUseBlock = finalMessage.content.find((b) => b.type === "tool_use");
+  // tool_use 블록 추출
+  const toolUseBlock = response.content.find((b) => b.type === "tool_use");
   if (!toolUseBlock || toolUseBlock.type !== "tool_use") {
-    console.error("[aiRefine] content blocks:", JSON.stringify(finalMessage.content).slice(0, 500));
-    throw new Error("[aiRefine] Claude did not return a tool_use block");
+    const contentSummary = JSON.stringify(response.content).slice(0, 500);
+    throw new Error(`[aiRefine] No tool_use block returned. content=${contentSummary}`);
   }
 
   const toolInput = toolUseBlock.input as { trends?: unknown[] };
   if (!Array.isArray(toolInput.trends)) {
-    // 디버그: 실제 수신된 input을 에러 메시지에 포함
-    const received = JSON.stringify(toolInput).slice(0, 300);
-    throw new Error(`[aiRefine] tool_use input missing 'trends' array. stop_reason=${finalMessage.stop_reason}, received=${received}`);
+    const received = JSON.stringify(toolInput).slice(0, 400);
+    throw new Error(`[aiRefine] tool_use input missing 'trends' array. received=${received}`);
   }
 
   const refined: RefinedTrend[] = [];
