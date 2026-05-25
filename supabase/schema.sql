@@ -2,8 +2,10 @@
 -- Run this in the Supabase SQL Editor (Dashboard → SQL Editor → New query)
 -- or via the Supabase CLI: supabase db push
 
--- Enable UUID extension (already enabled by default on new projects)
+-- Enable extensions
 create extension if not exists "pgcrypto";
+-- pg_trgm: 한국어 포함 모든 언어 LIKE/유사도 검색 지원
+create extension if not exists "pg_trgm";
 
 -- ─── trends table ─────────────────────────────────────────────────────────────
 create table if not exists trends (
@@ -37,9 +39,9 @@ create index if not exists trends_category_idx
 create index if not exists trends_updated_at_idx
   on trends (updated_at desc);
 
--- Full-text search on keyword (optional — useful for search feature)
-create index if not exists trends_keyword_idx
-  on trends using gin (to_tsvector('korean', keyword));
+-- 한국어 키워드 검색 (pg_trgm — 언어 무관, 부분 문자열 검색 지원)
+create index if not exists trends_keyword_trgm_idx
+  on trends using gin (keyword gin_trgm_ops);
 
 -- ─── Row Level Security ───────────────────────────────────────────────────────
 -- Public read; service role can write (cron job uses service role key)
