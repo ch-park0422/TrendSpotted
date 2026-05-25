@@ -40,8 +40,20 @@ async function upsertToSupabase(insights: TrendInsight[]): Promise<number> {
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error("Supabase client not available");
 
+  // Deduplicate by id — prevents "ON CONFLICT DO UPDATE command cannot affect
+  // row a second time" when the AI returns two trends with near-identical keywords
+  const seen = new Set<string>();
+  const unique = insights.filter((ins) => {
+    if (seen.has(ins.id)) {
+      console.warn(`[db] Duplicate id ${ins.id} for keyword "${ins.keyword}" — skipping`);
+      return false;
+    }
+    seen.add(ins.id);
+    return true;
+  });
+
   // Map to snake_case columns expected by the schema
-  const rows = insights.map((ins) => ({
+  const rows = unique.map((ins) => ({
     id: ins.id,
     keyword: ins.keyword,
     category: ins.category,
@@ -66,7 +78,7 @@ async function upsertToSupabase(insights: TrendInsight[]): Promise<number> {
     throw new Error(`[db] Supabase upsert failed: ${error.message}`);
   }
 
-  return count ?? rows.length;
+  return count ?? unique.length;
 }
 
 // ─── Local JSON fallback ──────────────────────────────────────────────────────

@@ -21,8 +21,8 @@ import type { RawTrend, RefinedTrend, Category, MonetizationIdea } from "./types
 
 const MODEL = "claude-sonnet-4-6";
 
-// 트렌드 11개 × 상세 JSON ≈ 최대 12k 토큰
-const MAX_TOKENS = 12000;
+// 트렌드 11개 × 상세 JSON ≈ 최대 16k 토큰 (출력량이 가변적이므로 넉넉하게 유지)
+const MAX_TOKENS = 16000;
 
 // ─── Lazy client initialisation ───────────────────────────────────────────────
 
