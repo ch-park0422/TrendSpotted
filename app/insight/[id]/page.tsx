@@ -6,13 +6,12 @@ import {
   Lightbulb,
   Users,
   Target,
-  Eye,
   ExternalLink,
   CheckCircle2,
   Zap,
   BookOpen,
 } from "lucide-react";
-import ViewTracker from "@/components/ViewTracker";
+import ViewCounter from "@/components/ViewCounter";
 import { getTrendById } from "@/lib/getTrends";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,8 +56,6 @@ export default async function InsightPage({ params }: PageProps) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-16">
-      {/* Client-side view tracker — fires once per 24h per device */}
-      <ViewTracker trendId={id} />
 
       {/* Back button */}
       <Link
@@ -95,10 +92,7 @@ export default async function InsightPage({ params }: PageProps) {
 
           {/* Meta */}
           <div className="mt-6 flex flex-wrap items-center gap-5 text-xs text-white/30">
-            <span className="flex items-center gap-1.5">
-              <Eye className="h-3.5 w-3.5" />
-              {trend.viewCount.toLocaleString()} views
-            </span>
+            <ViewCounter trendId={id} initialCount={trend.viewCount} />
             <span>업데이트: {formattedDate}</span>
           </div>
         </div>
