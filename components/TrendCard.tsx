@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { TrendingUp, Eye, Bookmark, ArrowUpRight } from "lucide-react";
+import { TrendingUp, Eye, ArrowUpRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { TrendInsight } from "@/lib/mockData";
@@ -72,10 +72,6 @@ export default function TrendCard({ trend, rank }: TrendCardProps) {
                   <span className="flex items-center gap-1">
                     <Eye className="h-3 w-3" />
                     {formatNumber(trend.viewCount)}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Bookmark className="h-3 w-3" />
-                    {formatNumber(trend.bookmarkCount)}
                   </span>
                 </div>
               </div>

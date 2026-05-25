@@ -6,7 +6,7 @@
  * Optimisations:
  * - System prompt is passed as an array of TextBlockParam with cache_control
  *   so it is eligible for prompt caching (tools + system are cached together).
- * - A single API call processes all keywords in one batch (up to 15 items).
+ * - A single API call processes all keywords in one batch (up to 11 items).
  * - Streaming is used to avoid serverless timeout issues on long responses.
  */
 
@@ -21,8 +21,8 @@ import type { RawTrend, RefinedTrend, Category, MonetizationIdea } from "./types
 
 const MODEL = "claude-sonnet-4-6";
 
-// 트렌드 15개 × 상세 JSON ≈ 최대 16k 토큰
-const MAX_TOKENS = 16000;
+// 트렌드 11개 × 상세 JSON ≈ 최대 12k 토큰
+const MAX_TOKENS = 12000;
 
 // ─── Lazy client initialisation ───────────────────────────────────────────────
 
@@ -75,11 +75,19 @@ const SYSTEM_PROMPT: TextBlockParam[] = [
    - 심리통계: 가치관, 관심사, 라이프스타일 3~4가지
    - 페인 포인트: 이 사람들이 겪는 주요 문제점 3~4가지
 
+## 카테고리 배분 (필수 준수)
+입력된 키워드들을 분석하여 **정확히** 다음 개수로 배분하세요:
+- **재테크**: 5개
+- **창업/부업**: 3개
+- **사이드 프로젝트**: 3개
+- **합계**: 11개
+
+키워드의 성격이 애매하더라도 이 배분을 맞춰야 합니다. 경계에 있는 키워드는 부족한 카테고리로 할당하세요.
+
 ## 분석 원칙
 - **실용성 우선**: 이론이 아닌 실제로 실행 가능한 정보를 제공하세요.
 - **한국 시장 맥락**: 한국의 경제 상황, 세금 제도, 문화적 특성을 반영하세요.
 - **최신성**: 제공된 뉴스 헤드라인을 기반으로 현재 트렌드를 정확히 반영하세요.
-- **다양성**: 같은 카테고리의 키워드가 몰리지 않도록 균형 있게 분류하세요.
 - **정확한 JSON**: tool_use를 통해 정확한 스키마를 따르는 JSON을 반환하세요.
 
 카테고리 분류 시 키워드 자체의 의미보다 실제 사용자의 검색 의도를 고려하세요. 예를 들어 "부동산 경매"는 투자 목적이면 "재테크", 경매 사업이면 "창업/부업"으로 분류할 수 있습니다.`,

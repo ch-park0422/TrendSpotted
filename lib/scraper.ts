@@ -11,8 +11,9 @@ import type { RawTrend } from "./types";
 const TRENDS_RSS_URL =
   "https://trends.google.com/trending/rss?geo=KR";
 
-/** How many trends to return from the RSS feed (feed usually has 20). */
-const MAX_TRENDS = 15;
+/** How many trends to return from the RSS feed (feed usually has 20).
+ *  11 = 재테크(5) + 창업/부업(3) + 사이드 프로젝트(3) */
+const MAX_TRENDS = 11;
 
 // ─── XML parser ──────────────────────────────────────────────────────────────
 
