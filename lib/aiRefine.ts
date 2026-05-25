@@ -14,7 +14,6 @@ import Anthropic from "@anthropic-ai/sdk";
 import type {
   TextBlockParam,
   Tool,
-  MessageStreamEvent,
 } from "@anthropic-ai/sdk/resources/messages";
 import type { RawTrend, RefinedTrend, Category, MonetizationIdea } from "./types";
 
@@ -285,8 +284,8 @@ export async function refineTrendsWithAI(
 
   const userMessage = `다음 ${rawTrends.length}개의 구글 트렌드 급상승 키워드를 분석하고 save_trend_insights 도구를 사용하여 결과를 저장해주세요:\n\n${trendsText}`;
 
-  // Use streaming to avoid serverless timeout on large batches
-  const stream = await client.messages.stream({
+  // stream.finalMessage()이 내부적으로 스트림을 소비하고 최종 메시지를 조합
+  const stream = client.messages.stream({
     model: MODEL,
     max_tokens: MAX_TOKENS,
     system: SYSTEM_PROMPT,
@@ -295,40 +294,32 @@ export async function refineTrendsWithAI(
     messages: [{ role: "user", content: userMessage }],
   });
 
-  // Drain the stream; we only need the final assembled message
-  let inputTokens = 0;
-  let cacheReadTokens = 0;
-  let cacheCreationTokens = 0;
+  const finalMessage = await stream.finalMessage();
 
-  stream.on("message", (msg) => {
-    const usage = msg.usage as unknown as Record<string, number> | undefined;
-    if (usage) {
-      inputTokens = usage["input_tokens"] ?? 0;
-      cacheReadTokens = usage["cache_read_input_tokens"] ?? 0;
-      cacheCreationTokens = usage["cache_creation_input_tokens"] ?? 0;
-    }
-  });
-
-  // Collect stream events to detect errors early
-  const events: MessageStreamEvent[] = [];
-  for await (const event of stream) {
-    events.push(event);
-  }
-
+  // 토큰 사용량 로깅
+  const usage = finalMessage.usage as unknown as Record<string, number>;
   console.log(
-    `[aiRefine] tokens — input: ${inputTokens}, cache_read: ${cacheReadTokens}, cache_creation: ${cacheCreationTokens}`
+    `[aiRefine] tokens — input: ${usage["input_tokens"] ?? 0}, ` +
+    `cache_read: ${usage["cache_read_input_tokens"] ?? 0}, ` +
+    `cache_creation: ${usage["cache_creation_input_tokens"] ?? 0}, ` +
+    `output: ${usage["output_tokens"] ?? 0}`
   );
 
-  const finalMessage = await stream.finalMessage();
+  // stop_reason 확인 (max_tokens 초과 여부)
+  if (finalMessage.stop_reason === "max_tokens") {
+    console.warn("[aiRefine] Warning: response was truncated by max_tokens limit");
+  }
 
   // Extract the tool_use block
   const toolUseBlock = finalMessage.content.find((b) => b.type === "tool_use");
   if (!toolUseBlock || toolUseBlock.type !== "tool_use") {
+    console.error("[aiRefine] content blocks:", JSON.stringify(finalMessage.content).slice(0, 500));
     throw new Error("[aiRefine] Claude did not return a tool_use block");
   }
 
   const toolInput = toolUseBlock.input as { trends?: unknown[] };
   if (!Array.isArray(toolInput.trends)) {
+    console.error("[aiRefine] tool_use input received:", JSON.stringify(toolInput).slice(0, 500));
     throw new Error("[aiRefine] tool_use input missing 'trends' array");
   }
 
